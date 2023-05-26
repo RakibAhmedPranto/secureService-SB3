@@ -1,5 +1,6 @@
 package com.cbs.secureService.user;
 
+import com.cbs.secureService.token.Token;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -30,6 +31,9 @@ public class User implements UserDetails {
 
     @Enumerated(EnumType.STRING)
     private Role role;
+
+    @OneToOne(mappedBy = "user")
+    private Token token;
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {

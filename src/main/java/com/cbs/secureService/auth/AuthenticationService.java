@@ -1,6 +1,9 @@
 package com.cbs.secureService.auth;
 
 import com.cbs.secureService.config.JwtService;
+import com.cbs.secureService.token.Token;
+import com.cbs.secureService.token.TokenRepository;
+import com.cbs.secureService.token.TokenType;
 import com.cbs.secureService.user.Role;
 import com.cbs.secureService.user.User;
 import com.cbs.secureService.user.UserRepository;
@@ -17,6 +20,7 @@ public class AuthenticationService {
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final AuthenticationManager authenticationManager;
+    private final TokenRepository tokenRepository;
 
     public AuthenticationResponse register(RegisterRequest request) {
         var user = User.builder()
@@ -28,6 +32,7 @@ public class AuthenticationService {
                 .build();
         var savedUser = repository.save(user);
         var jwtToken = jwtService.generateToken(user);
+        saveUserToken(savedUser, jwtToken);
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .build();
@@ -43,10 +48,40 @@ public class AuthenticationService {
         var user = repository.findByEmail(request.getEmail())
                 .orElseThrow();
         var jwtToken = jwtService.generateToken(user);
-
+        updateUserToken(user,jwtToken);
         return AuthenticationResponse.builder()
                 .accessToken(jwtToken)
                 .build();
+    }
+
+    private void saveUserToken(User user, String jwtToken) {
+        var token = Token.builder()
+                .user(user)
+                .token(jwtToken)
+                .tokenType(TokenType.BEARER)
+                .expired(false)
+                .revoked(false)
+                .build();
+        tokenRepository.save(token);
+    }
+
+    private void updateUserToken(User user, String jwtToken) {
+        Token tokenByUser = tokenRepository.findTokenByUser(user.getId());
+        if(tokenByUser != null){
+            tokenByUser.setToken(jwtToken);
+            tokenByUser.setExpired(false);
+            tokenByUser.setRevoked(false);
+            tokenRepository.save(tokenByUser);
+        }else {
+            var token = Token.builder()
+                    .user(user)
+                    .token(jwtToken)
+                    .tokenType(TokenType.BEARER)
+                    .expired(false)
+                    .revoked(false)
+                    .build();
+            tokenRepository.save(token);
+        }
     }
 
 }
