@@ -33,6 +33,11 @@ public class JwtService {
         return claimsResolver.apply(claims);
     }
 
+    public String extractRefreshTokenTrue(String token){
+        final Claims claims = extractAllClaims(token);
+        return claims.get("RefreshToken", String.class);
+    }
+
     public String generateToken(UserDetails userDetails) {
         return generateToken(new HashMap<>(), userDetails);
     }
@@ -42,6 +47,14 @@ public class JwtService {
             UserDetails userDetails
     ) {
         return buildToken(extraClaims, userDetails, jwtExpiration);
+    }
+
+    public String generateRefreshToken(
+            UserDetails userDetails
+    ) {
+        HashMap<String,Object> refreshTokenClaims = new HashMap<>();
+        refreshTokenClaims.put("RefreshToken","true");
+        return buildToken(refreshTokenClaims, userDetails, refreshExpiration);
     }
 
     private String buildToken(
@@ -62,6 +75,12 @@ public class JwtService {
     public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername())) && !isTokenExpired(token);
+    }
+
+    public boolean isRefreshTokenValid(String token, UserDetails userDetails) {
+        final String username = extractUsername(token);
+        String s = extractRefreshTokenTrue(token);
+        return  (username.equals(userDetails.getUsername())) && !isTokenExpired(token) && (s != null && s.equalsIgnoreCase("true"));
     }
 
     private boolean isTokenExpired(String token) {
